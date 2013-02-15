@@ -65,7 +65,7 @@
 
 			callback( [] );
 
-			return;
+			return true;
 		}
 
 		var self = this;

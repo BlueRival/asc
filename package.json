@@ -1,19 +1,25 @@
 {
-	"name":        "asc",
-	"description": "A middleware layer between a service and a client. The service could be an in-process library, a file, an external web service, anything. Any time the results from a resource call can be cached, you can use ASC as a proxy to that resource.",
-	"version":     "0.0.3",
-	"author":      "Anthony Hildoer <anthony@bluerival.com>",
-	"repository":  {
+	"name":            "asc",
+	"description":     "A middleware layer between a service and a client. The service could be an in-process library, a file, an external web service, anything. Any time the results from a resource call can be cached, you can use ASC as a proxy to that resource.",
+	"version":         "0.0.3",
+	"author":          "Anthony Hildoer <anthony@bluerival.com>",
+	"repository":      {
 		"type": "git",
 		"url":  "git://github.com/bluerival/asc.git"
 	},
-	"keywords":    [
+	"dependencies":    {
+		"async": "~0"
+	},
+	"devDependencies": {
+		"mocha": "~1.8.0"
+	},
+	"keywords":        [
 		"cache",
 		"service proxy",
 		"ttl cache"
 	],
-	"engines":     {
+	"engines":         {
 		"node": ">=0.6.0"
 	},
-	"license":     "MIT"
+	"license":         "MIT"
 }

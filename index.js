@@ -23,7 +23,7 @@ module.exports.getCache = function ( name, options ) {
 	}
 
 	// cache exists and new options passed, update the options
-	else if ( options != undefined ) {
+	else if ( options !== undefined ) {
 		caches[name].updateOptions( options );
 	}
 

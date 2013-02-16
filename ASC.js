@@ -8,13 +8,13 @@
 	var async = require( 'async' );
 
 	/**
+	 * Cache
+	 *
 	 * The constructor for a single cache instance.
 	 *
-	 * @param {object} options
+	 * @param {object } [options] Cache options
 	 *
-	 * @see cache.updateOptions()
-	 *
-	 *
+	 * @see cache.updateOptions() for options parameter
 	 * @constructor
 	 */
 	var cache = module.exports = function ( options ) {
@@ -27,35 +27,76 @@
 
 	};
 
+	/**
+	 * Update Options
+	 *
+	 * Updates the cache's options
+	 *
+	 * @param {object} [options] Configuration for the cache
+	 * @param {number ? 300000} [options.ttl] The number of milliseconds each
+	 *     key exist in the cache
+	 * @param {function} options.update A function used to update the cache one
+	 *     key at a time. Prototype defined below
+	 * @param {function} [options.updateBatch] A function used to update the
+	 *     cache in bulk. Prototype defined below
+	 * @param {function} [options.clear] A function called when a key is
+	 *    cleared, by a timeout or otherwise. The key is passed to the
+	 *    function
+	 *
+	 * options.update = function( key, callback ), where key is the lookup key
+	 *    and callback is a function that should be passed a single parameter,
+	 *    the value corresponding to key, or undefined if key has no
+	 *    corresponding value or if value can not be determined for any reason.
+	 *
+	 * options.updateBatch = function( keys, callback ), where keys is an array
+	 *    of keys to lookup in batch, and callback is a function that should be
+	 *    passed a single array, containing one entry for each key in the
+	 *    corresponding index in keys. Note: if this function is omitted, then
+	 *    batch lookups against the cache will fall back to multiple update
+	 *    calls in the background.
+	 *
+	 */
 	cache.prototype.updateOptions = function ( options ) {
 
-		var self = this;
-
-		self.options = {
+		this.options = {
 			ttl:         (options.ttl || 300000),
 			update:      (options.update || null),
 			updateBatch: (options.updateBatch || null),
 			clear:       (options.clear || null)
 		};
 
-		if ( typeof self.options.ttl !== 'number' || self.options.ttl < 1000 ) {
-			self.options.ttl = 1000;
+		if ( typeof this.options.ttl !== 'number' || this.options.ttl < 1000 ) {
+			this.options.ttl = 1000;
 		}
 
-		if ( typeof self.options.update !== 'function' ) {
-			self.options.update = null;
+		if ( typeof this.options.update !== 'function' ) {
+			this.options.update = null;
 		}
 
-		if ( typeof self.options.clear !== 'function' ) {
-			self.options.clear = null;
+		if ( typeof this.options.clear !== 'function' ) {
+			this.options.clear = null;
 		}
 
 	};
 
+	/**
+	 * Get Batch
+	 *
+	 * Gets the values for an array of keys all at once. Values are passed to
+	 * the callback as an array, each entry corresponding to the respective
+	 * entry in keys.
+	 *
+	 * @param {(string|number|list|object)[]} keys A list of keys, each of any
+	 *     primitive type and schema
+	 * @param {function(*[])} callback Will be passed the values that
+	 *     correspond to the passed in keys. Values return in the same order
+	 *     keys are passed
+	 *
+	 */
 	cache.prototype.getBatch = function ( keys, callback ) {
 
 		if ( typeof callback !== 'function' ) {
-			return false;
+			return;
 		}
 
 		callback = nextTickCallback( callback );
@@ -65,7 +106,7 @@
 
 			callback( [] );
 
-			return true;
+			return;
 		}
 
 		var self = this;
@@ -215,14 +256,22 @@
 			} );
 		}
 
-		return true;
-
 	};
 
+	/**
+	 * Get
+	 *
+	 * Gets the value for a single key.
+	 *
+	 * @param {string|number|list|object} key A key used to identify the value
+	 * @param {function(*)} callback Will be passed the value corresponding to
+	 *    the key
+	 *
+	 */
 	cache.prototype.get = function ( key, callback ) {
 
 		if ( typeof callback !== 'function' ) {
-			return false;
+			return;
 		}
 
 		callback = nextTickCallback( callback );
@@ -263,16 +312,31 @@
 
 		}
 
-		return true;
-
 	};
 
+	/**
+	 * Clear Entry
+	 *
+	 * Clears the specified cache entry. If a clear() callback is configured in
+	 * the options, it will fire.
+	 *
+	 * @param {string|number|list|object} key The key identifying the entry to
+	 *    delete
+	 *
+	 */
 	cache.prototype.clear = function ( key ) {
 
-		return this._clear( stringifyKey( key ) );
+		this._clear( stringifyKey( key ) );
 
 	};
 
+	/**
+	 * Clear All
+	 *
+	 * Clears all keys from cache. IF a clear() callback is configured in the
+	 * options, it will fire once for each key.
+	 *
+	 */
 	cache.prototype.clearAll = function () {
 
 		for ( var keyString in this.storage ) {
@@ -283,26 +347,26 @@
 
 	};
 
+	/* --- private functions --- */
+
 	cache.prototype._clear = function ( keyString ) {
 
-		var self = this;
-
-		if ( self._exists( keyString ) ) {
+		if ( this._exists( keyString ) ) {
 
 			// clear any existing timeout
-			if ( self.storage[keyString].timeout ) {
-				clearTimeout( self.storage[keyString].timeout );
+			if ( this.storage[keyString].timeout ) {
+				clearTimeout( this.storage[keyString].timeout );
 			}
 
 			// if a clear event handler exists
-			if ( typeof self.options.clear === 'function' ) {
+			if ( typeof this.options.clear === 'function' ) {
 
-				nextTickCallback( self.options.clear )( parseKeyString( keyString ) );
+				nextTickCallback( this.options.clear )( parseKeyString( keyString ) );
 
 			}
 
 			// delete the entire entry
-			delete self.storage[keyString];
+			delete this.storage[keyString];
 
 		}
 
@@ -389,6 +453,8 @@
 		return true;
 
 	};
+
+	/* --- static private methods (sorta) --- */
 
 	function nextTickCallback( callback ) {
 		return function ( value ) {

@@ -16,7 +16,8 @@
 	"keywords":        [
 		"cache",
 		"service proxy",
-		"ttl cache"
+		"ttl cache",
+		"batch lookup"
 	],
 	"engines":         {
 		"node": ">=0.6.0"

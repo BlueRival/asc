@@ -85,7 +85,7 @@ accomplished with the get() method on the asc module.
 	 *
 	 * @return {ASC} An instance of the ASC cache
 	 */
-	var profileCache = require( 'asc' ).get( name, [options] );
+	var profileCache = require( 'asc' ).getCache( name, [options] );
 ```
 
 Example
@@ -101,8 +101,8 @@ one way you could cache the profile lookups.
 
 // first, create your cache instance. if the cache was already created
 // elsewhere, and you simply need access to it, replace this block with:
-// var profileCache = require( 'asc' ).get( 'user.profile' );
-var profileCache = require( 'asc' ).get( 'user.profile', {
+// var profileCache = require( 'asc' ).getCache( 'user.profile' );
+var profileCache = require( 'asc' ).getCache( 'user.profile', {
 
 	// milliseconds to cache data ( 5 minutes ). minimum is 1000ms
 	ttl:    300000,
@@ -195,9 +195,9 @@ Some things to notice from the example. The name of the cache we returned from
 the cache factory, user.profile, is a singleton. If any other module does a
 getCache on that cache name, they will get the same cache, thereby allowing
 different modules to benefit from the same data cache for that resource. Also
-note, that passing a configuration object is optional. If you want a
-self-updating cache, you must pass the options with an update function once, but
-subsequent calls can simply be require( 'asc' ).getCache( 'user.profile' );
+note that passing a configuration object is optional. On your first getCache,
+you must pass the options with an update function, but subsequent calls can
+simply be require( 'asc' ).getCache( 'user.profile' );
 
 
 License

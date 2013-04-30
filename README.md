@@ -133,7 +133,8 @@ var profileCache = require( 'asc' ).getCache( 'user.profile', {
 	updateBatch: function ( usernames, callback ) {
 
 		request( {
-			url: "http://profile-server.mydomain.com/users/" + usernames.join( ',' );
+			url: "http://profile-server.mydomain.com/users/" +
+				usernames.join( ',' );
 		},
 		function( err, result ) {
 			if ( err ) {
@@ -179,9 +180,10 @@ profileCache.get( 'suzanne', function( value ) {
 // function will get called with keys [ 'lilly', 'landon' ] instead of all four.
 // This prevents the service provider from having to search for as much data,
 // and typically this will reduce the servicing time.
-profileCache.getBatch( [ 'anthony', 'jackson', 'lilly', 'landon' ], function ( values ) {
-	console.log( values );
-} );
+profileCache.getBatch( [ 'anthony', 'jackson', 'lilly', 'landon' ],
+	function ( values ) {
+		console.log( values );
+	} );
 
 // this will not trigger a call to update, instead it will get data when the
 // previous batch call finishes its update on [ 'lilly', 'landon' ].

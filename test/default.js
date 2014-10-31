@@ -36,6 +36,7 @@ describe( 'ASC', function () {
 
 	var lastUpdateKey;
 	var updates = 0;
+	var keyUpdates = {};
 
 	var lastUpdateKeys;
 	var updateBatches = 0;
@@ -53,9 +54,16 @@ describe( 'ASC', function () {
 				cleared++;
 			},
 			update: function ( key, callback ) {
+				var keyStr = JSON.stringify( key );
 				lastUpdateKey = key;
+
+				if ( !keyUpdates.hasOwnProperty( keyStr ) ) {
+					keyUpdates[keyStr] = 0;
+				}
+
+				keyUpdates[keyStr]++;
 				updates++;
-				callback( key + 'check' );
+				callback( keyStr + 'check' );
 			}
 		} );
 
@@ -95,13 +103,45 @@ describe( 'ASC', function () {
 		it( 'should have triggered only 1 call to update for ' + simultaneousCalls + ' parallel calls to the same key', function ( done ) {
 
 			updates = 0;
+			keyUpdates = {};
 			var tasks = [];
 
 			var pushTask = function () {
-				tasks.push( function ( callback ) {
-					testCache.get( 'set', function () {
-						callback( null, true );
-					} );
+				tasks.push( function ( done ) {
+
+					async.parallel( [
+						function ( done ) {
+							testCache.get( 'set1', function () {
+								done( null, true );
+							} );
+						},
+						function ( done ) {
+							testCache.get( 'set1', function () {
+								done( null, true );
+							} );
+						},
+						function ( done ) {
+							testCache.get( 'set1', function () {
+								done( null, true );
+							} );
+						},
+						function ( done ) {
+							testCache.get( 'set2', function () {
+								done( null, true );
+							} );
+						},
+						function ( done ) {
+							testCache.get( 'set2', function () {
+								done( null, true );
+							} );
+						},
+						function ( done ) {
+							testCache.get( 'set2', function () {
+								done( null, true );
+							} );
+						}
+					], done );
+
 				} );
 			};
 
@@ -110,7 +150,9 @@ describe( 'ASC', function () {
 			}
 
 			async.parallel( tasks, function () {
-				assert.strictEqual( updates, 1 );
+				assert.strictEqual( updates, 2 );
+				assert.strictEqual( keyUpdates['"set1"'], 1 );
+				assert.strictEqual( keyUpdates['"set2"'], 1 );
 				done();
 			} );
 
@@ -174,6 +216,12 @@ describe( 'ASC', function () {
 				},
 				update: function ( key, callback ) {
 					lastUpdateKey = key;
+					var keyStr = JSON.stringify( key );
+					if ( !keyUpdates.hasOwnProperty( keyStr ) ) {
+						keyUpdates[keyStr] = 0;
+					}
+
+					keyUpdates[keyStr]++;
 					updates++;
 					callback( key + 'check' );
 				}
@@ -203,6 +251,12 @@ describe( 'ASC', function () {
 				},
 				update:      function ( key, callback ) {
 					lastUpdateKey = key;
+					var keyStr = JSON.stringify( key );
+					if ( !keyUpdates.hasOwnProperty( keyStr ) ) {
+						keyUpdates[keyStr] = 0;
+					}
+
+					keyUpdates[keyStr]++;
 					updates++;
 					callback( key + 'check' );
 				},
@@ -245,6 +299,12 @@ describe( 'ASC', function () {
 				},
 				update:      function ( key, callback ) {
 					lastUpdateKey = key;
+					var keyStr = JSON.stringify( key );
+					if ( !keyUpdates.hasOwnProperty( keyStr ) ) {
+						keyUpdates[keyStr] = 0;
+					}
+
+					keyUpdates[keyStr]++;
 					updates++;
 					callback( key + 'check' );
 				},

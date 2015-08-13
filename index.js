@@ -1,7 +1,16 @@
-"use strict";
+'use strict';
 
-var ASC = require( './ASC.js' );
+var ASC = require( './lib/asc.js' );
 var caches = {};
+
+/**
+ * ASC Class
+ *
+ * Create stand alone (not shared) instances of ASC
+ *
+ * @type {ASC} The cache class
+ */
+module.exports = ASC;
 
 /**
  * Clear Cache
@@ -11,11 +20,11 @@ var caches = {};
  *
  * @param {string} name The name of the cache to clear and remove from inventory
  */
-module.exports.clear = function ( name ) {
+module.exports.clear = function( name ) {
 
-	if ( caches[name] ) {
-		caches[name].clearAll();
-		delete caches[name];
+	if ( caches[ name ] ) {
+		caches[ name ].clearAll();
+		delete caches[ name ];
 	}
 
 };
@@ -49,25 +58,25 @@ module.exports.clear = function ( name ) {
  *    batch lookups against the cache will fall back to multiple update
  *    calls in the background.
  *
- * @return {ASC} An instance of the ASC cache
+ * @return {ASC} A cache instance
  */
-module.exports.getCache = function ( name, options ) {
+module.exports.getCache = function( name, options ) {
 
 	// cache does not exist, create it
-	if ( !caches[name] ) {
+	if ( !caches[ name ] ) {
 		if ( !options ) {
 			options = {};
 		}
-		caches[name] = new ASC( options );
+		caches[ name ] = new ASC( options );
 	}
 
 	// cache exists and new options passed, update the options
 	else if ( options !== undefined ) {
-		caches[name].updateOptions( options );
+		caches[ name ].updateOptions( options );
 	}
 
 	// return the cache
-	return caches[name];
+	return caches[ name ];
 
 };
 

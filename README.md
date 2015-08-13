@@ -43,15 +43,53 @@ operations must be supported by the service consumed)
 * Shared cache instances between modules/libraries/etc
 * Complex keys, including arrays and primitive objects
 
-Soon to come:
 
-* More documentation and examples
+Create Instance
+========
+
+The ASC module exports the cache class. This is useful for creating caches that
+you do not want to share system wide.
+
+```js
+	/**
+     * The Cache Class for ASC
+     *
+     * The constructor for a single cache instance.
+     *
+     * @param {object} [options] Configuration for the cache
+     * @param {number ? 300000} [options.ttl] The number of milliseconds each
+     *     key exist in the cache
+     * @param {function} options.update A function used to update the cache one
+     *     key at a time. Prototype defined below
+     * @param {function} [options.updateBatch] A function used to update the
+     *     cache in bulk. Prototype defined below
+     * @param {function} [options.clear] A function called when a key is
+     *    cleared, by a timeout or otherwise. The key is passed to the
+     *    function
+     *
+     * options.update = function( key, callback ), where key is the lookup key
+     *    and callback is a function that should be passed a single parameter,
+     *    the value corresponding to key, or undefined if key has no
+     *    corresponding value or if value can not be determined for any reason.
+     *
+     * options.updateBatch = function( keys, callback ), where keys is an array
+     *    of keys to lookup in batch, and callback is a function that should be
+     *    passed a single array, containing one entry for each key in the
+     *    corresponding index in keys. Note: if this function is omitted, then
+     *    batch lookups against the cache will fall back to multiple update
+     *    calls in the background.
+     *
+     * @constructor
+     */
+	var ASC = require( 'asc' );
+	var profileCache = new ASC( [options] );
+```
 
 Factory
 ========
 
-In order to get a cache, you need to query the factory for an instance. This is
-accomplished with the get() method on the asc module.
+You can also use the ASC module as a factory and shared cache store, using the
+getCache() method on the asc module.
 
 ```js
 	/**
@@ -133,7 +171,8 @@ var profileCache = require( 'asc' ).getCache( 'user.profile', {
 	updateBatch: function ( usernames, callback ) {
 
 		request( {
-			url: "http://profile-server.mydomain.com/users/" + usernames.join( ',' );
+			url: "http://profile-server.mydomain.com/users/" +
+				usernames.join( ',' );
 		},
 		function( err, result ) {
 			if ( err ) {
@@ -179,9 +218,10 @@ profileCache.get( 'suzanne', function( value ) {
 // function will get called with keys [ 'lilly', 'landon' ] instead of all four.
 // This prevents the service provider from having to search for as much data,
 // and typically this will reduce the servicing time.
-profileCache.getBatch( [ 'anthony', 'jackson', 'lilly', 'landon' ], function ( values ) {
-	console.log( values );
-} );
+profileCache.getBatch( [ 'anthony', 'jackson', 'lilly', 'landon' ],
+	function ( values ) {
+		console.log( values );
+	} );
 
 // this will not trigger a call to update, instead it will get data when the
 // previous batch call finishes its update on [ 'lilly', 'landon' ].
@@ -205,7 +245,7 @@ License
 
 (The MIT License)
 
-Copyright (c) 2012 BlueRival Software <anthony@bluerival.com>
+Copyright (c) 2015 BlueRival Software <anthony@bluerival.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the 'Software'), to deal in

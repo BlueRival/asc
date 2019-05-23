@@ -1,26 +1,32 @@
 {
-	"name": "asc",
-	"description": "A middleware layer between a service and a client. The service could be an in-process library, a file, an external web service, anything. Any time the results from a resource call can be cached, you can use ASC as a proxy to that resource.",
-	"version": "1.1.1",
-	"author": "Anthony Hildoer <anthony@bluerival.com>",
-	"repository": {
-		"type": "git",
-		"url": "git://github.com/bluerival/asc.git"
-	},
-	"dependencies": {
-		"async": "1.4.2"
-	},
-	"devDependencies": {
-		"mocha": "2.2.5"
-	},
-	"keywords": [
-		"cache",
-		"service proxy",
-		"ttl cache",
-		"batch lookup"
-	],
-	"engines": {
-		"node": ">=0.10.0"
-	},
-	"license": "MIT"
+  "name": "asc",
+  "description": "A middleware layer between a service and a client. The service could be an in-process library, a file, an external web service, anything. Any time the results from a resource call can be cached, you can use ASC as a proxy to that resource.",
+  "version": "2.0.0",
+  "author": "Anthony Hildoer <anthony@bluerival.com>",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/bluerival/asc.git"
+  },
+  "scripts": {
+    "test-watch": "./node_modules/mocha/bin/mocha -b -u bdd -w --exit test/*.test.js",
+    "test": "./node_modules/mocha/bin/mocha -b -u bdd --exit test/*.test.js"
+  },
+  "dependencies": {
+    "async": "^2.6.2",
+    "doublescore": "^0.3.7"
+  },
+  "devDependencies": {
+    "@types/mocha": "^5.2.6",
+    "mocha": "^6.1.4"
+  },
+  "keywords": [
+    "cache",
+    "service proxy",
+    "ttl cache",
+    "batch lookup"
+  ],
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "license": "MIT"
 }

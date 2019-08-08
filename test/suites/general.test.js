@@ -1,8 +1,8 @@
 'use strict';
 
-const ASC = require( '../' );
+const ASC = require( '../../index' );
 const assert = require( 'assert' );
-const util = require( './util' );
+const util = require( '../lib/util' );
 
 describe( 'General', function () {
 
@@ -14,12 +14,13 @@ describe( 'General', function () {
         layers: [
           {
             get: ( key, data, done ) => {
-
+              done();
             }
           }
         ]
       };
 
+      // eslint-disable-next-line no-new
       new ASC( params );
 
     } catch ( e ) {

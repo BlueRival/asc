@@ -9,31 +9,39 @@
     "ecmaVersion": 2015,
     "sourceType": "script"
   },
+  "globals": {
+    "localRequire": true
+  },
   "rules": {
-    "curly": "error",
-    "strict": [
+    "camelcase": "error",
+    "comma-dangle": [
       "error",
-      "global"
+      "never"
+    ],
+    "comma-style": [
+      "error",
+      "last"
+    ],
+    "curly": "error",
+    "default-case": "error",
+    "dot-location": [
+      "error",
+      "property"
+    ],
+    "dot-notation": [
+      "error",
+      {
+        "allowKeywords": true
+      }
     ],
     "eqeqeq": "error",
-    "no-console": [ "off" ],
-    "no-undefined": [ "off" ],
-    "vars-on-top": "error",
-    "no-useless-return": "error",
-    "no-unused-expressions": "error",
-    "no-throw-literal": "error",
-    "no-return-assign": "error",
-    "no-new": "error",
-    "no-multi-spaces": "error",
-    "no-loop-func": "error",
-    "no-implicit-globals": "error",
-    "no-floating-decimal": "error",
-    "no-extend-native": "error",
-    "no-eq-null": "error",
-    "wrap-iife": [ "error", "inside" ],
+    "getter-return": [
+      "error",
+      {
+        "allowImplicit": false
+      }
+    ],
     "guard-for-in": "error",
-    "default-case": "error",
-    "dot-location": [ "error", "property" ],
     "indent": [
       "error",
       2,
@@ -41,11 +49,28 @@
         "SwitchCase": 1
       }
     ],
-    "dot-notation": [ "error", { "allowKeywords": true } ],
     "linebreak-style": [
-      "error",
-      "unix"
+      "off"
     ],
+    "new-cap": [
+      "error",
+      { "newIsCap": true }
+    ],
+    "no-eq-null": "error",
+    "no-extend-native": "error",
+    "no-floating-decimal": "error",
+    "no-implicit-globals": "error",
+    "no-loop-func": "error",
+    "no-multi-spaces": "error",
+    "no-new": "error",
+    "no-return-assign": "error",
+    "no-throw-literal": "error",
+    "no-undefined": "error",
+    "no-prototype-builtins": "off",
+    "no-unused-expressions": "error",
+    "no-useless-return": "error",
+    "no-var": "error",
+    "one-var": [ "error", "never" ],
     "quotes": [
       "error",
       "single"
@@ -54,11 +79,15 @@
       "error",
       "always"
     ],
-    "getter-return": [
+    "space-in-parens": [ "error", "always" ],
+    "strict": [
       "error",
-      {
-        "allowImplicit": false
-      }
+      "global"
+    ],
+    "vars-on-top": "error",
+    "wrap-iife": [
+      "error",
+      "inside"
     ]
   }
 }

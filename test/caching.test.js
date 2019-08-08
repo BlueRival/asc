@@ -3,7 +3,7 @@
 const ASC = require( '../' );
 const assert = require( 'assert' );
 const async = require( 'async' );
-const util = require( './util' );
+const util = require( './lib/util' );
 
 describe( 'Caching', function () {
 
@@ -39,14 +39,17 @@ describe( 'Caching', function () {
       layers: [
         {
           get: ( key, done ) => {
+            console.log( 'debug get', key, done );
             lastGetKey = key;
             done( null, data ); // just return the date for any call
           },
           set: ( key, data, done ) => {
+            console.log( 'debug set', key, data, done );
             lastSetKey = key;
             done();
           },
           clear: ( key, done ) => {
+            console.log( 'debug clear', key, done );
             lastClearKey = key;
             done();
           }
@@ -58,10 +61,11 @@ describe( 'Caching', function () {
 
     async.waterfall( [
       ( done ) => {
+        console.log( 'debug 1' );
         asc.set( setKey, data, done );
       },
       ( done ) => {
-
+        console.log( 'debug 2' );
         try {
 
           assert.strictEqual( lastSetKey, setKey, 'key should have been passed unmodified to set' );
@@ -76,10 +80,11 @@ describe( 'Caching', function () {
 
       },
       ( done ) => {
+        console.log( 'debug 3' );
         asc.get( getKey, done );
       },
       ( result, done ) => {
-
+        console.log( 'debug 4' );
         try {
 
           assert.strictEqual( lastGetKey, getKey, 'key should have been passed unmodified to get' );
@@ -95,10 +100,11 @@ describe( 'Caching', function () {
 
       },
       ( done ) => {
+        console.log( 'debug 5' );
         asc.clear( clearKey, done );
       },
       ( done ) => {
-
+        console.log( 'debug 6' );
         try {
 
           assert.strictEqual( lastClearKey, clearKey, 'key should have been passed unmodified to clear' );
@@ -112,7 +118,12 @@ describe( 'Caching', function () {
         done();
 
       }
-    ], done );
+    ], ( err ) => {
+
+      console.log( 'err', err );
+      done( err );
+
+    } );
 
   } );
 

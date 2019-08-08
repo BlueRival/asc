@@ -2,7 +2,7 @@
 
 const ASC = require( '../' );
 const assert = require( 'assert' );
-const util = require( './util' );
+const util = require( './lib/util' );
 
 describe( 'General', function () {
 

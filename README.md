@@ -8,7 +8,7 @@ The services defined in each layer could be an in-process library, a file, an ex
 the results from a resource call can be cached, you can use ASC as a proxy to that resource.
 
 
-# New 2.0.0
+# New 2.x
 
 This is a major re-write to the previous version. The previous version is 1.x
 

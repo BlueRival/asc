@@ -1,6 +1,6 @@
-'use strict'
+'use strict';
 
-const util = require( '../lib/util' );
+const util = require( '../../lib/util' );
 
 module.exports = {
   marshallKey: util.marshallKey,

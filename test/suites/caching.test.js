@@ -1,9 +1,9 @@
 'use strict';
 
-const ASC = require( '../' );
+const ASC = require( '../../index' );
 const assert = require( 'assert' );
 const async = require( 'async' );
-const util = require( './util' );
+const util = require( '../lib/util' );
 
 describe( 'Caching', function () {
 
@@ -98,7 +98,6 @@ describe( 'Caching', function () {
         asc.clear( clearKey, done );
       },
       ( done ) => {
-
         try {
 
           assert.strictEqual( lastClearKey, clearKey, 'key should have been passed unmodified to clear' );
@@ -130,7 +129,7 @@ describe( 'Caching', function () {
         util.testLayer()
       ],
       get: ( key, done ) => {
-        done( null, unsetData )
+        done( null, unsetData );
       }
     };
 
@@ -190,7 +189,7 @@ describe( 'Caching', function () {
         disabled: true // disable memory so nothing can be stored with a call to set
       },
       get: ( key, done ) => {
-        done( null, unsetData )
+        done( null, unsetData );
       }
     };
 
@@ -234,7 +233,7 @@ describe( 'Caching', function () {
         util.testLayer( new Error( 'a layer to fail them all' ) )
       ],
       get: ( key, done ) => {
-        done( null, unsetData )
+        done( null, unsetData );
       }
     };
 
@@ -2046,6 +2045,9 @@ describe( 'Caching', function () {
 
         assert( err instanceof Error, 'err should be an instance of Error' );
         assert.strictEqual( err.message, 'last layer', 'error message should match' );
+
+
+        // eslint-disable-next-line no-undefined
         assert.strictEqual( data, undefined, 'data should be undefined' );
 
       } catch ( e ) {
@@ -2089,6 +2091,8 @@ describe( 'Caching', function () {
 
         assert( err instanceof Error, 'err should be an instance of Error' );
         assert.strictEqual( err.message, 'last layer', 'error message should match' );
+
+        // eslint-disable-next-line no-undefined
         assert.strictEqual( data, undefined, 'data should be undefined' );
 
       } catch ( e ) {

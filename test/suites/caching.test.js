@@ -11,7 +11,7 @@ describe( 'Caching', function () {
 
     let data = {
       custom: 'data',
-      value: [ 'here' ]
+      value: ['here']
     };
 
     // make three different keys
@@ -119,14 +119,20 @@ describe( 'Caching', function () {
 
     let setData = 'set data';
     let unsetData = 'unset data';
-    let key = 'key';
+    let key = {complex: 'key'};
+
+    const layer1 = util.testLayer();
+    const layer2 = util.testLayer();
+    const layer3 = util.testLayer();
 
     const params = {
       memory: {
         disabled: true // ensure our layer only gets used
       },
       layers: [
-        util.testLayer()
+        layer1,
+        layer2,
+        layer3
       ],
       get: ( key, done ) => {
         done( null, unsetData );
@@ -159,6 +165,97 @@ describe( 'Caching', function () {
         asc.clear( key, done );
       },
       ( done ) => {
+
+        try {
+
+          assert.strictEqual( layer1.clearCount, 1, 'layer 1 should have cleared' );
+          assert.strictEqual( layer2.clearCount, 1, 'layer 2 should have cleared' );
+          assert.strictEqual( layer3.clearCount, 1, 'layer 3 should have cleared' );
+
+        } catch ( e ) {
+          return done( e );
+        }
+
+        asc.get( key, done );
+      },
+      ( result, done ) => {
+
+        try {
+
+          assert.strictEqual( result, unsetData, 'data should change' );
+
+        } catch ( e ) {
+          return done( e );
+        }
+
+        done();
+
+      }
+    ], done );
+
+  } );
+
+  it( 'should set, get, clear with memory enabled', function ( done ) {
+
+    let setData = 'set data';
+    let unsetData = 'unset data';
+    let key = {complex: 'key'};
+
+    const layer1 = util.testLayer();
+    const layer2 = util.testLayer();
+    const layer3 = util.testLayer();
+
+    const params = {
+      memory: {
+        disabled: false
+      },
+      layers: [
+        layer1,
+        layer2,
+        layer3
+      ],
+      get: ( key, done ) => {
+        done( null, unsetData );
+      }
+    };
+
+    const asc = new ASC( params );
+
+    async.waterfall( [
+      ( done ) => {
+        asc.set( key, setData, done );
+      },
+      ( done ) => {
+        asc.get( key, done );
+      },
+      ( result, done ) => {
+
+        try {
+
+          assert.strictEqual( result, setData, 'data should match' );
+
+        } catch ( e ) {
+          return done( e );
+        }
+
+        done();
+
+      },
+      ( done ) => {
+        asc.clear( key, done );
+      },
+      ( done ) => {
+
+        try {
+
+          assert.strictEqual( layer1.clearCount, 1, 'layer 1 should have cleared' );
+          assert.strictEqual( layer2.clearCount, 1, 'layer 2 should have cleared' );
+          assert.strictEqual( layer3.clearCount, 1, 'layer 3 should have cleared' );
+
+        } catch ( e ) {
+          return done( e );
+        }
+
         asc.get( key, done );
       },
       ( result, done ) => {
@@ -182,7 +279,7 @@ describe( 'Caching', function () {
 
     let setData = 'set data';
     let unsetData = 'unset data';
-    let key = 'key';
+    let key = {complex: 'key'};
 
     const params = {
       memory: {
@@ -223,7 +320,7 @@ describe( 'Caching', function () {
 
     let setData = 'set data';
     let unsetData = 'unset data';
-    let key = 'key';
+    let key = {complex: 'key'};
 
     const params = {
       memory: {
@@ -1685,7 +1782,7 @@ describe( 'Caching', function () {
   it( 'should return a hit from top layer after set', function ( done ) {
 
     let count = 0;
-    let setData = 'some value';
+    let setData = {some: 'data'};
     let dynamicData = null;
 
     // these will cache miss, just like internal memory storage in ASC
@@ -1927,9 +2024,10 @@ describe( 'Caching', function () {
   it( 'should expire items in memory correctly', function ( done ) {
 
     let count = 0;
-    let timestamp = null;
-    const memoryTTL = 3;
+    let timestamps = [];
+    const memoryTTL = 2000;
 
+    this.timeout( memoryTTL * 10 );
 
     const params = {
       memory: {
@@ -1940,9 +2038,9 @@ describe( 'Caching', function () {
           get: ( key, done ) => {
 
             count++;
-            timestamp = new Date().toISOString();
+            timestamps.push( new Date().toISOString() );
 
-            done( null, timestamp ); // just return the date for any call
+            done( null, timestamps[timestamps.length - 1] ); // just return the date for any call
 
           }
         }
@@ -1956,12 +2054,11 @@ describe( 'Caching', function () {
         asc.get( 'key', done );
       },
       ( result, done ) => {
-
         try {
 
           // count should be one, because internal memory layer was a miss
           assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
+          assert.strictEqual( result, timestamps[0], 'result should match' );
 
         } catch ( e ) {
           return done( e );
@@ -1974,12 +2071,11 @@ describe( 'Caching', function () {
         asc.get( 'key', done );
       },
       ( result, done ) => {
-
         try {
 
           // count should still be one, because internal memory layer was a hit
           assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
+          assert.strictEqual( result, timestamps[count - 1], 'result should match' );
 
         } catch ( e ) {
           return done( e );
@@ -1990,18 +2086,62 @@ describe( 'Caching', function () {
       },
       ( done ) => {
         // let TTL expire
-        setTimeout( done, memoryTTL );
+        setTimeout( done, memoryTTL + 1000 );
       },
       ( done ) => {
         asc.get( 'key', done );
       },
       ( result, done ) => {
-
         try {
 
           // count should increment, because internal memory should have expired entry
           assert.strictEqual( count, 2, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
+          assert.strictEqual( result, timestamps[count - 1], 'result should match' );
+
+        } catch ( e ) {
+          return done( e );
+        }
+
+        done();
+
+      },
+      ( done ) => {
+        // DON'T let TTL expire
+        setTimeout( done, memoryTTL - 100 );
+      },
+      ( done ) => {
+        asc.clear( 'key', done );
+      },
+      ( done ) => {
+        asc.get( 'key', done );
+      },
+      ( result, done ) => {
+        try {
+
+          // count should increment, because internal memory should have expired entry
+          assert.strictEqual( count, 3, 'hit count is wrong' );
+          assert.strictEqual( result, timestamps[count - 1], 'result should match' );
+
+        } catch ( e ) {
+          return done( e );
+        }
+
+        done();
+
+      },
+      ( done ) => {
+        // DON'T let TTL expire
+        setTimeout( done, memoryTTL - 100 );
+      },
+      ( done ) => {
+        asc.get( 'key', done );
+      },
+      ( result, done ) => {
+        try {
+
+          // count should increment, because internal memory should have expired entry
+          assert.strictEqual( count, 3, 'hit count is wrong' );
+          assert.strictEqual( result, timestamps[count - 1], 'result should match' );
 
         } catch ( e ) {
           return done( e );

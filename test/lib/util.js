@@ -39,7 +39,7 @@ module.exports = {
         key = util.marshallKey( key );
 
         if ( layer.storage.hasOwnProperty( key ) ) {
-          done( null, layer.storage[ key ] );
+          done( null, layer.storage[key] );
         } else {
           done( new Error( 'not found' ) );
         }
@@ -53,7 +53,7 @@ module.exports = {
           return done( returnError );
         }
 
-        layer.storage[ util.marshallKey( key ) ] = data;
+        layer.storage[util.marshallKey( key )] = data;
 
         done();
 
@@ -66,7 +66,7 @@ module.exports = {
           return done( returnError );
         }
 
-        delete layer.storage[ util.marshallKey( key ) ];
+        delete layer.storage[util.marshallKey( key )];
 
         done();
 

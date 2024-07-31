@@ -13,14 +13,12 @@ describe('General', function () {
             const params = {
                 layers: [
                     {
-                        get: (key, data, done) => {
-                            done();
+                        get: async () => {
                         }
                     }
                 ]
             };
 
-            // eslint-disable-next-line no-new
             new ASC(params);
 
         } catch (e) {
@@ -39,9 +37,7 @@ describe('General', function () {
             const layer2 = util.testLayer(new Error('test error'));
             const layer3 = util.testLayer();
 
-            const get = async (key) => {
-                return new Date().toISOString();
-            };
+            const get = async () => new Date().toISOString();
 
             const params1 = {
                 memory: {
@@ -141,7 +137,7 @@ describe('General', function () {
     it('should error out if using get function shortcut', async function () {
 
         try {
-            new ASC(function () {
+            new ASC(() => {
             });
         } catch (e) {
             assert(e instanceof Error, 'err should be an instance of Error');

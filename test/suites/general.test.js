@@ -91,7 +91,7 @@ describe('General', function () {
     it('should add shortcut get just like it was an explicitly defined layer, with no explicit layers',
         function (done) {
 
-            const get = async (key) => {
+            const get = async () => {
                 return new Date().toISOString();
             };
 
@@ -126,5 +126,29 @@ describe('General', function () {
             done();
 
         });
+
+    it('should error out if using layers shortcut', async function () {
+
+        try {
+            new ASC([]);
+        } catch (e) {
+            assert(e instanceof Error, 'err should be an instance of Error');
+            assert.strictEqual(e.message, 'params as an array is no longer supported as of version 2.1', 'error message should match');
+        }
+
+    });
+
+    it('should error out if using get function shortcut', async function () {
+
+        try {
+            new ASC(function () {
+            });
+        } catch (e) {
+            assert(e instanceof Error, 'err should be an instance of Error');
+            assert.strictEqual(e.message, 'params as a function is no longer supported as of version 2.1');
+        }
+
+    });
+
 
 });

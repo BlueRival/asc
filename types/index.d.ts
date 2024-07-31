@@ -13,8 +13,8 @@ declare module 'asc' {
     }
 
     type GetCallback = (key: string) => Promise<any>;
-    type SetCallback = (key: string, data: any) => Promise<void>;
-    type ClearCallback = (key: string) => Promise<void>;
+    type SetCallback = (key: string, data: any) => Promise<any>;
+    type ClearCallback = (key: string) => Promise<any>;
 
     interface CacheLayer {
         get: GetCallback;

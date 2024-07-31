@@ -1,10 +1,10 @@
 declare module 'asc' {
     class ASC {
-        constructor(params: ConstructorParams | Array<CacheLayer> | GetCallback);
+        constructor(params: ConstructorParams);
 
-        get: (key: any, done: ErrorDataCallback) => void;
-        set: (key: any, data: any, done: ErrorCallback) => void;
-        clear: (key: any, done: ErrorCallback) => void;
+        get: (key: any) => Promise<any>;
+        set: (key: any, data: any) => Promise<void>;
+        clear: (key: any) => Promise<void>;
     }
 
     interface MemoryParams {
@@ -12,15 +12,12 @@ declare module 'asc' {
         ttl?: number;
     }
 
-    type ErrorCallback = (err?: Error) => void;
-    type ErrorDataCallback = (err: Error, data: any) => void;
-    type DataCallback = (err: Error, data?: any) => void;
-    type GetCallback = (key: string, done: DataCallback) => void;
-    type SetCallback = (key: string, data: any, done: ErrorCallback) => void;
-    type ClearCallback = (key: string, done: ErrorCallback) => void;
+    type GetCallback = (key: string) => Promise<any>;
+    type SetCallback = (key: string, data: any) => Promise<void>;
+    type ClearCallback = (key: string) => Promise<void>;
 
     interface CacheLayer {
-        get: DataCallback;
+        get: GetCallback;
         set?: SetCallback;
         clear?: ClearCallback;
     }

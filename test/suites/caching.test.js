@@ -1,2248 +1,921 @@
 'use strict';
 
-const ASC = require( '../../index' );
-const assert = require( 'assert' );
-const async = require( 'async' );
-const util = require( '../lib/util' );
-
-describe( 'Caching', function () {
-
-  it( 'should pass original, unmarshalled key', function ( done ) {
-
-    let data = {
-      custom: 'data',
-      value: ['here']
-    };
-
-    // make three different keys
-    let getKey = {
-      'a complex': 'key',
-      has: [
-        'nested',
-        'structures',
-        {
-          in: 'everywhere'
-        }
-      ]
-    };
-    let setKey = JSON.parse( JSON.stringify( getKey ) );
-    let clearKey = JSON.parse( JSON.stringify( getKey ) );
-
-    let lastGetKey = null;
-    let lastSetKey = null;
-    let lastClearKey = null;
-
-    const params = {
-      memory: {
-        disabled: true // ensure our layer only gets used
-      },
-      layers: [
-        {
-          get: ( key, done ) => {
-            lastGetKey = key;
-            done( null, data ); // just return the date for any call
-          },
-          set: ( key, data, done ) => {
-            lastSetKey = key;
-            done();
-          },
-          clear: ( key, done ) => {
-            lastClearKey = key;
-            done();
-          }
-        }
-      ]
-    };
-
-    const asc = new ASC( params );
-
-    async.waterfall( [
-      ( done ) => {
-        asc.set( setKey, data, done );
-      },
-      ( done ) => {
-
-        try {
-
-          assert.strictEqual( lastSetKey, setKey, 'key should have been passed unmodified to set' );
-          assert.notStrictEqual( lastSetKey, getKey, 'should not have get key' );
-          assert.notStrictEqual( lastSetKey, clearKey, 'should not have clear key' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        asc.get( getKey, done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          assert.strictEqual( lastGetKey, getKey, 'key should have been passed unmodified to get' );
-          assert.notStrictEqual( lastGetKey, setKey, 'should not have set key' );
-          assert.notStrictEqual( lastGetKey, clearKey, 'should not have clear key' );
-
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        asc.clear( clearKey, done );
-      },
-      ( done ) => {
-        try {
-
-          assert.strictEqual( lastClearKey, clearKey, 'key should have been passed unmodified to clear' );
-          assert.notStrictEqual( lastClearKey, setKey, 'should not have set key' );
-          assert.notStrictEqual( lastClearKey, getKey, 'should not have get key' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      }
-    ], done );
-
-  } );
-
-  it( 'should set, get, clear with memory disabled', function ( done ) {
-
-    let setData = 'set data';
-    let unsetData = 'unset data';
-    let key = {complex: 'key'};
-
-    const layer1 = util.testLayer();
-    const layer2 = util.testLayer();
-    const layer3 = util.testLayer();
-
-    const params = {
-      memory: {
-        disabled: true // ensure our layer only gets used
-      },
-      layers: [
-        layer1,
-        layer2,
-        layer3
-      ],
-      get: ( key, done ) => {
-        done( null, unsetData );
-      }
-    };
-
-    const asc = new ASC( params );
-
-    async.waterfall( [
-      ( done ) => {
-        asc.set( key, setData, done );
-      },
-      ( done ) => {
-        asc.get( key, done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          assert.strictEqual( result, setData, 'data should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        asc.clear( key, done );
-      },
-      ( done ) => {
-
-        try {
-
-          assert.strictEqual( layer1.clearCount, 1, 'layer 1 should have cleared' );
-          assert.strictEqual( layer2.clearCount, 1, 'layer 2 should have cleared' );
-          assert.strictEqual( layer3.clearCount, 1, 'layer 3 should have cleared' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        asc.get( key, done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          assert.strictEqual( result, unsetData, 'data should change' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      }
-    ], done );
-
-  } );
-
-  it( 'should set, get, clear with memory enabled', function ( done ) {
-
-    let setData = 'set data';
-    let unsetData = 'unset data';
-    let key = {complex: 'key'};
-
-    const layer1 = util.testLayer();
-    const layer2 = util.testLayer();
-    const layer3 = util.testLayer();
-
-    const params = {
-      memory: {
-        disabled: false
-      },
-      layers: [
-        layer1,
-        layer2,
-        layer3
-      ],
-      get: ( key, done ) => {
-        done( null, unsetData );
-      }
-    };
-
-    const asc = new ASC( params );
-
-    async.waterfall( [
-      ( done ) => {
-        asc.set( key, setData, done );
-      },
-      ( done ) => {
-        asc.get( key, done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          assert.strictEqual( result, setData, 'data should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        asc.clear( key, done );
-      },
-      ( done ) => {
-
-        try {
-
-          assert.strictEqual( layer1.clearCount, 1, 'layer 1 should have cleared' );
-          assert.strictEqual( layer2.clearCount, 1, 'layer 2 should have cleared' );
-          assert.strictEqual( layer3.clearCount, 1, 'layer 3 should have cleared' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        asc.get( key, done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          assert.strictEqual( result, unsetData, 'data should change' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      }
-    ], done );
-
-  } );
-
-  it( 'should ignore set if no layers support it, including memory disabled', function ( done ) {
-
-    let setData = 'set data';
-    let unsetData = 'unset data';
-    let key = {complex: 'key'};
-
-    const params = {
-      memory: {
-        disabled: true // disable memory so nothing can be stored with a call to set
-      },
-      get: ( key, done ) => {
-        done( null, unsetData );
-      }
-    };
-
-    const asc = new ASC( params );
-
-    async.waterfall( [
-      ( done ) => {
-        asc.set( key, setData, done );
-      },
-      ( done ) => {
-        asc.get( key, done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          assert.strictEqual( result, unsetData, 'data should be unset' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      }
-    ], done );
-
-  } );
-
-  it( 'should ignore set if no layers support it, or supporting layers are erring out', function ( done ) {
-
-    let setData = 'set data';
-    let unsetData = 'unset data';
-    let key = {complex: 'key'};
-
-    const params = {
-      memory: {
-        disabled: true // disable memory so nothing can be stored with a call to set
-      },
-      layers: [
-        util.testLayer( new Error( 'a layer to fail them all' ) )
-      ],
-      get: ( key, done ) => {
-        done( null, unsetData );
-      }
-    };
-
-    const asc = new ASC( params );
-
-    async.waterfall( [
-      ( done ) => {
-        asc.set( key, setData, done );
-      },
-      ( done ) => {
-        asc.get( key, done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          assert.strictEqual( result, unsetData, 'data should be unset' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      }
-    ], done );
-
-  } );
-
-  it( 'should use in-memory cache', function ( done ) {
-
-    let count = 0;
-    let timestamp = null;
-
-    const params = {
-      layers: [
-        {
-          get: ( key, done ) => {
-
-            count++;
-            timestamp = new Date().toISOString();
-
-            done( null, timestamp ); // just return the date for any call
-
-          }
-        }
-      ]
-    };
-
-    const asc = new ASC( params );
-
-    async.waterfall( [
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // count should be one, because internal memory layer was a miss
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        // small delay
-        setTimeout( done, 1 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // count should still be one, because internal memory layer was a hit
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        asc.get( 'key2', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // count should be two, because internal memory layer was a miss for this second key
-          assert.strictEqual( count, 2, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      }
-    ], done );
-
-  } );
-
-  it( 'should use in-memory cache with shortcut get: version 1', function ( done ) {
-
-    let count = 0;
-    let timestamp = null;
-
-    const params = {
-      get: ( key, done ) => {
-
-        count++;
-        timestamp = new Date().toISOString();
-
-        done( null, timestamp ); // just return the date for any call
-
-      }
-    };
-
-    const asc = new ASC( params );
-
-    async.waterfall( [
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // count should be one, because internal memory layer was a miss
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        // small delay
-        setTimeout( done, 1 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // count should still be one, because internal memory layer was a hit
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        asc.get( 'key2', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // count should be two, because internal memory layer was a miss for this second key
-          assert.strictEqual( count, 2, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      }
-    ], done );
-
-  } );
-
-  it( 'should use in-memory cache with shortcut get: version 2', function ( done ) {
-
-    let count = 0;
-    let timestamp = null;
-
-    const params = ( key, done ) => {
-
-      count++;
-      timestamp = new Date().toISOString();
-
-      done( null, timestamp ); // just return the date for any call
-
-    };
-
-    const asc = new ASC( params );
-
-    async.waterfall( [
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // count should be one, because internal memory layer was a miss
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        // small delay
-        setTimeout( done, 1 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // count should still be one, because internal memory layer was a hit
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        asc.get( 'key2', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // count should be two, because internal memory layer was a miss for this second key
-          assert.strictEqual( count, 2, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      }
-    ], done );
-
-  } );
-
-  it( 'should use in-memory cache with shortcut get, no explicit layers', function ( done ) {
-
-    let count = 0;
-    let timestamp = null;
-
-    const params = {
-      get: ( key, done ) => {
-
-        count++;
-        timestamp = new Date().toISOString();
-
-        done( null, timestamp ); // just return the date for any call
-
-      }
-    };
-
-    const asc = new ASC( params );
-
-    async.waterfall( [
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // count should be one, because internal memory layer was a miss
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        // small delay
-        setTimeout( done, 1 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // count should still be one, because internal memory layer was a hit
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        asc.get( 'key2', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // count should be two, because internal memory layer was a miss for this second key
-          assert.strictEqual( count, 2, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      }
-    ], done );
-
-  } );
-
-  it( 'should use multiple cache layers with disabled memory', function ( done ) {
-
-    let count = 0;
-    let timestamp = null;
-
-    // these will cache miss, just like internal memory storage in ASC
-    const layer1 = util.testLayer();
-    const layer2 = util.testLayer();
-
-    const params = {
-      memory: {
-        disabled: true
-      },
-      layers: [
-        layer1,
-        layer2,
-        {
-          get: ( key, done ) => {
+const ASC = require('../../index');
+const assert = require('assert');
+const util = require('../lib/util');
+
+describe('Caching', function () {
+
+    it('should pass original, unmarshalled key', async function () {
+
+        let data = {
+            custom: 'data',
+            value: ['here']
+        };
+
+        // make three different keys
+        let getKey = {
+            'a complex': 'key',
+            has: [
+                'nested',
+                'structures',
+                {
+                    in: 'everywhere'
+                }
+            ]
+        };
+        let setKey = {
+            'a different complex': 'key',
+            has: [
+                'nested',
+                'structures',
+                {
+                    in: 'everywhere else'
+                }
+            ]
+        };
+        let clearKey = {
+            'yet another complex': 'key',
+            has: [
+                'nested',
+                'structures',
+                {
+                    in: 'still everywhere'
+                }
+            ]
+        };
+
+        let lastGetKey = null;
+        let lastSetKey = null;
+        let lastClearKey = null;
+
+        const params = {
+            memory: {
+                disabled: true // ensure our layer only gets used
+            },
+            layers: [
+                {
+                    get: async (key) => {
+                        lastGetKey = key;
+                        return data; // just return the data for any call
+                    },
+                    set: async (key) => lastSetKey = key,
+                    clear: async (key) => lastClearKey = key
+                }
+            ]
+        };
+
+        const asc = new ASC(params);
+
+        await asc.set(setKey, data);
+
+        assert.deepStrictEqual(setKey, lastSetKey, 'key should have been passed unmodified to set');
+        assert.deepStrictEqual(null, lastGetKey, 'should not have get key');
+        assert.deepStrictEqual(null, lastClearKey, 'should not have clear key');
+
+        const result = await asc.get(getKey);
+        assert.deepStrictEqual(result, data, 'get data should have matched');
+
+        assert.deepStrictEqual(setKey, lastSetKey, 'key should have been passed unmodified to set');
+        assert.deepStrictEqual(getKey, lastGetKey, 'key should have been passed unmodified to get');
+        assert.deepStrictEqual(null, lastClearKey, 'should not have clear key');
+
+
+        await asc.clear(clearKey);
+
+        assert.deepStrictEqual(setKey, lastSetKey, 'key should have been passed unmodified to set');
+        assert.deepStrictEqual(getKey, lastGetKey, 'key should have been passed unmodified to get');
+        assert.deepStrictEqual(clearKey, lastClearKey, 'key should have been passed unmodified to clear');
+
+
+    });
+
+    it('should set, get, clear with memory disabled', async function () {
+
+        let setData = 'set data';
+        let unsetData = 'unset data';
+        let key = {complex: 'key'};
+
+        const layer1 = util.testLayer();
+        const layer2 = util.testLayer();
+        const layer3 = util.testLayer();
+
+        const params = {
+            memory: {
+                disabled: true // ensure our layer only gets used
+            },
+            layers: [
+                layer1,
+                layer2,
+                layer3
+            ],
+            get: async () => {
+                // console.log('top get', key);
+                return unsetData;
+            }
+        };
+
+        const asc = new ASC(params);
+
+        await asc.set(key, setData);
+
+        let result = await asc.get(key);
+        // console.log('result, setData', result, setData);
+        assert.strictEqual(result, setData, 'data should match');
+
+        await asc.clear(key);
+
+        assert.strictEqual(layer1.clearCount, 1, 'layer 1 should have cleared');
+        assert.strictEqual(layer2.clearCount, 1, 'layer 2 should have cleared');
+        assert.strictEqual(layer3.clearCount, 1, 'layer 3 should have cleared');
+
+        result = await asc.get(key);
+        // console.log('result, unsetData', result, unsetData);
+        assert.strictEqual(result, unsetData, 'data should change');
+
+    });
+
+    it('should set, get, clear with memory enabled', async function () {
 
-            count++;
-            timestamp = new Date().toISOString();
+        let setData = 'set data';
+        let unsetData = 'unset data';
+        let key = {complex: 'key'};
 
-            done( null, timestamp ); // just return the date for any call
+        const layer1 = util.testLayer();
+        const layer2 = util.testLayer();
+        const layer3 = util.testLayer();
 
-          }
-        }
-      ]
-    };
-
-    const asc = new ASC( params );
-
-    async.waterfall( [
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // counts should be one, because internal memory layer was disabled, then all middle layers got back propagated
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        // small delay
-        setTimeout( done, 1 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // counts should be one, except first layer 2, because internal memory layer was disabled. All layers after should be ignored
-          assert.strictEqual( layer1.getCount, 2, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        asc.get( 'key2', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // counts should all increment by one, because internal memory layer was disabled, then all middle layers got back propagated
-          assert.strictEqual( layer1.getCount, 3, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 2, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 2, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 2, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 2, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      }
-    ], done );
-
-  } );
-
-  it( 'should use multiple cache layers with disabled memory, shortcut get', function ( done ) {
-
-    let count = 0;
-    let timestamp = null;
-
-    // these will cache miss, just like internal memory storage in ASC
-    const layer1 = util.testLayer();
-    const layer2 = util.testLayer();
-
-    const params = {
-      memory: {
-        disabled: true
-      },
-      layers: [
-        layer1,
-        layer2
-      ],
-      get: ( key, done ) => {
-
-        count++;
-        timestamp = new Date().toISOString();
-
-        done( null, timestamp ); // just return the date for any call
-
-      }
-    };
-
-    const asc = new ASC( params );
-
-    async.waterfall( [
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // counts should be one, because internal memory layer was disabled, then all middle layers got back propagated
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        // small delay
-        setTimeout( done, 1 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // counts should be one, except first layer 2, because internal memory layer was disabled. All layers after should be ignored
-          assert.strictEqual( layer1.getCount, 2, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        asc.get( 'key2', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // counts should all increment by one, because internal memory layer was disabled, then all middle layers got back propagated
-          assert.strictEqual( layer1.getCount, 3, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 2, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 2, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 2, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 2, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      }
-    ], done );
-
-  } );
-
-  it( 'should use multiple cache layers with enabled memory', function ( done ) {
-
-    let count = 0;
-    let timestamp = null;
-
-    // these will cache miss, just like internal memory storage in ASC
-    const layer1 = util.testLayer();
-    const layer2 = util.testLayer();
-
-    const params = {
-      memory: {
-        disabled: false
-      },
-      layers: [
-        layer1,
-        layer2,
-        {
-          get: ( key, done ) => {
-
-            count++;
-            timestamp = new Date().toISOString();
-
-            done( null, timestamp ); // just return the date for any call
-
-          }
-        }
-      ]
-    };
-
-    const asc = new ASC( params );
-
-    async.waterfall( [
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // counts should be one, because internal memory layer was a miss, then all middle layers got back propagated
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        // small delay
-        setTimeout( done, 1 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // counts should be one, because internal memory layer was a hit, and no other layers got engaged at all
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        asc.get( 'key2', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // counts should increment by one, because internal memory layer was a miss, then all middle layers got back propagated
-          assert.strictEqual( layer1.getCount, 2, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 2, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 2, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 2, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 2, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      }
-    ], done );
-
-  } );
-
-  it( 'should use multiple cache layers with enabled memory, shortcut get', function ( done ) {
-
-    let count = 0;
-    let timestamp = null;
-
-    // these will cache miss, just like internal memory storage in ASC
-    const layer1 = util.testLayer();
-    const layer2 = util.testLayer();
-
-    const params = {
-      memory: {
-        disabled: false
-      },
-      layers: [
-        layer1,
-        layer2
-      ],
-      get: ( key, done ) => {
-
-        count++;
-        timestamp = new Date().toISOString();
-
-        done( null, timestamp ); // just return the date for any call
-
-      }
-    };
-
-    const asc = new ASC( params );
-
-    async.waterfall( [
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // counts should be one, because internal memory layer was a miss, then all middle layers got back propagated
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        // small delay
-        setTimeout( done, 1 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // counts should be one, because internal memory layer was a hit, and no other layers got engaged at all
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        asc.get( 'key2', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // counts should increment by one, because internal memory layer was a miss, then all middle layers got back propagated
-          assert.strictEqual( layer1.getCount, 2, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 2, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 2, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 2, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 2, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
+        const params = {
+            memory: {
+                disabled: false
+            },
+            layers: [
+                layer1,
+                layer2,
+                layer3
+            ],
+            get: async () => {
+                // console.log('top get', key);
+                return unsetData;
+            }
+        };
 
-      }
-    ], done );
+        const asc = new ASC(params);
 
-  } );
+        await asc.set(key, setData);
 
-  it( 'should use multiple cache layers with enabled memory, shortcut layers', function ( done ) {
+        let result = await asc.get(key);
+        // console.log('result, setData', result, setData);
+        assert.strictEqual(result, setData, 'data should match');
 
-    let count = 0;
-    let timestamp = null;
+        await asc.clear(key);
 
-    // these will cache miss, just like internal memory storage in ASC
-    const layer1 = util.testLayer();
-    const layer2 = util.testLayer();
+        assert.strictEqual(layer1.clearCount, 1, 'layer 1 should have cleared');
+        assert.strictEqual(layer2.clearCount, 1, 'layer 2 should have cleared');
+        assert.strictEqual(layer3.clearCount, 1, 'layer 3 should have cleared');
 
-    const params = [
-      layer1,
-      layer2,
-      {
-        get: ( key, done ) => {
+        result = await asc.get(key);
+        // console.log('result, unsetData', result, unsetData);
+        assert.strictEqual(result, unsetData, 'data should change');
 
-          count++;
-          timestamp = new Date().toISOString();
+    });
 
-          done( null, timestamp ); // just return the date for any call
+    it('should ignore set if no layers support it, including memory disabled', async function () {
 
-        }
-      }
-    ];
-
-    const asc = new ASC( params );
-
-    async.waterfall( [
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // counts should be one, because internal memory layer was a miss, then all middle layers got back propagated
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      },
-      ( done ) => {
-        // small delay
-        setTimeout( done, 1 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
-
-          // counts should be one, because internal memory layer was a hit, and no other layers got engaged at all
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+        let setData = 'set data';
+        let unsetData = 'unset data';
+        let key = {complex: 'key'};
 
-        done();
+        const params = {
+            memory: {
+                disabled: true // disable memory so nothing can be stored with a call to set
+            },
+            get: async () => unsetData
+        };
 
-      },
-      ( done ) => {
-        asc.get( 'key2', done );
-      },
-      ( result, done ) => {
+        const asc = new ASC(params);
 
-        try {
-
-          // counts should increment by one, because internal memory layer was a miss, then all middle layers got back propagated
-          assert.strictEqual( layer1.getCount, 2, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 2, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 2, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 2, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 2, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
-
-        done();
-
-      }
-    ], done );
-
-  } );
+        await asc.set(key, setData);
+        const result = await asc.get(key);
 
-  it( 'should ignore errors on middle cache layers with enabled memory', function ( done ) {
+        assert.strictEqual(result, unsetData, 'data should be unset');
 
-    let count = 0;
-    let timestamp = null;
+    });
 
-    // these will cache miss, just like internal memory storage in ASC
-    const layer1 = util.testLayer( new Error( 'test error' ) );
-    const layer2 = util.testLayer();
+    it('should ignore set if no layers support it, or supporting layers are erring out', async function () {
 
-    const params = {
-      memory: {
-        disabled: false
-      },
-      layers: [
-        layer1,
-        layer2,
-        {
-          get: ( key, done ) => {
+        let setData = 'set data';
+        let unsetData = 'unset data';
+        let key = {complex: 'key'};
 
-            count++;
-            timestamp = new Date().toISOString();
-
-            done( null, timestamp ); // just return the date for any call
-
-          }
-        }
-      ]
-    };
-
-    const asc = new ASC( params );
-
-    async.waterfall( [
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-
-        try {
+        const params = {
+            memory: {
+                disabled: true // disable memory so nothing can be stored with a call to set
+            },
+            layers: [
+                {
+                    get: async () => undefined
+                },
+                util.testLayer('a layer to fail them all'),
+                {
+                    get: async () => undefined
+                },
+            ],
+            get: async () => unsetData
+        };
 
-          // counts should be one, because internal memory layer was a miss, then all middle layers got back propagated
-          // layer 1 returned errors for all get/set calls, but the calls should still have been made
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+        const asc = new ASC(params);
 
-        done();
-
-      },
-      ( done ) => {
-        // small delay
-        setTimeout( done, 1 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
+        await asc.set(key, setData);
+        const result = await asc.get(key);
 
-        try {
+        // console.log('result, unsetData', result, unsetData);
+        assert.strictEqual(result, unsetData, 'data should be unset');
 
-          // counts should be one, because internal memory layer was a hit, then all middle layers got ignored
-          // layer 1 would have returned errors for all get/set calls, but the calls were not made
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+    });
 
-        done();
+    it('should use in-memory cache', async function () {
 
-      },
-      ( done ) => {
-        asc.get( 'key2', done );
-      },
-      ( result, done ) => {
+        let count = 0;
+        let timestamp = null;
 
-        try {
+        const params = {
+            layers: [
+                {
+                    get: async () => {
 
-          // counts should increment by one, because internal memory layer was a miss, then all middle layers got back propagated
-          // layer 1 returned errors for all get/set calls, but the calls should still have been made
-          assert.strictEqual( layer1.getCount, 2, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 2, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 2, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 2, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 2, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+                        count++;
+                        timestamp = new Date().toISOString();
 
-        done();
+                        return timestamp;
 
-      }
-    ], done );
+                    }
+                }
+            ]
+        };
 
-  } );
+        const asc = new ASC(params);
+        let result = await asc.get('key');
 
-  it( 'should ignore errors on middle cache layers with disabled memory: version 1', function ( done ) {
+        // count should be one, because internal memory layer was a miss
+        assert.strictEqual(count, 1, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
 
-    let count = 0;
-    let timestamp = null;
+        await util.wait(1);
 
-    // these will cache miss, just like internal memory storage in ASC
-    const layer1 = util.testLayer( new Error( 'test error' ) );
-    const layer2 = util.testLayer();
+        result = await asc.get('key');
 
-    const params = {
-      memory: {
-        disabled: true
-      },
-      layers: [
-        layer1,
-        layer2,
-        {
-          get: ( key, done ) => {
+        // count should still be one, because internal memory layer was a hit
+        assert.strictEqual(count, 1, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
 
-            count++;
-            timestamp = new Date().toISOString();
+        result = await asc.get('key2');
 
-            done( null, timestamp ); // just return the date for any call
+        // count should be two, because internal memory layer was a miss for this second key
+        assert.strictEqual(count, 2, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
 
-          }
-        }
-      ]
-    };
+    });
 
-    const asc = new ASC( params );
+    it('should use in-memory cache with shortcut get', async function () {
 
-    async.waterfall( [
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
+        let count = 0;
+        let timestamp = null;
 
-        try {
+        const params = {
+            get: async () => {
 
-          // counts should be one, because internal memory layer was disabled, then all middle layers got back propagated
-          // layer 1 returned errors for all get/set calls, but the calls should still have been made
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+                count++;
+                timestamp = new Date().toISOString();
 
-        done();
-
-      },
-      ( done ) => {
-        // small delay
-        setTimeout( done, 1 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
+                return timestamp;
 
-        try {
+            }
+        };
 
-          // counts should increment by one, except last because layer 2 had the data.
-          // internal memory layer was disabled, then all middle layers above layer 2 got back propagated
-          // layer 1 returned errors for all get/set calls, but the calls should still have been made
-          assert.strictEqual( layer1.getCount, 2, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 2, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 2, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+        const asc = new ASC(params);
 
-        done();
+        let result = await asc.get('key');
 
-      },
-      ( done ) => {
-        asc.get( 'key2', done );
-      },
-      ( result, done ) => {
+        // count should be one, because internal memory layer was a miss
+        assert.strictEqual(count, 1, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
 
-        try {
+        await util.wait(1);
 
-          // counts should increment by one, on all layers because key2 is new
-          // internal memory layer was disabled, then all middle layers got back propagated
-          // layer 1 returned errors for all get/set calls, but the calls should still have been made
-          assert.strictEqual( layer1.getCount, 3, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 3, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 3, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 2, 'layer2.setCount is wrong' );
-          assert.strictEqual( count, 2, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+        result = await asc.get('key');
 
-        done();
+        // count should still be one, because internal memory layer was a hit
+        assert.strictEqual(count, 1, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
 
-      }
-    ], done );
+        result = await asc.get('key2');
 
-  } );
+        assert.strictEqual(count, 2, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
 
-  it( 'should ignore errors on middle cache layers with disabled memory: version 2', function ( done ) {
+    });
 
-    let count = 0;
-    let timestamp = null;
 
-    // these will cache miss, just like internal memory storage in ASC
-    const layer1 = util.testLayer();
-    const layer2 = util.testLayer( new Error( 'test error' ) );
-    const layer3 = util.testLayer();
+    it('should use multiple cache layers with disabled memory', async function () {
 
-    const params = {
-      memory: {
-        disabled: true
-      },
-      layers: [
-        layer1,
-        layer2,
-        layer3,
-        {
-          get: ( key, done ) => {
+        let count = 0;
+        let timestamp = null;
 
-            count++;
-            timestamp = new Date().toISOString();
+        // these will cache miss, just like internal memory storage in ASC
+        const layer1 = util.testLayer();
+        const layer2 = util.testLayer();
 
-            done( null, timestamp ); // just return the date for any call
+        const params = {
+            memory: {
+                disabled: true
+            },
+            layers: [
+                layer1,
+                layer2,
+                {
+                    get: async () => {
 
-          }
-        }
-      ]
-    };
+                        count++;
+                        timestamp = new Date().toISOString();
 
-    const asc = new ASC( params );
+                        return timestamp;
 
-    async.waterfall( [
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
+                    }
+                }
+            ]
+        };
 
-        try {
+        const asc = new ASC(params);
 
-          // counts should be one, because internal memory layer was disabled, then all middle layers got back propagated
-          // layer 2 returned errors for all get/set calls, but the calls should still have been made
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( layer3.getCount, 1, 'layer3.getCount is wrong' );
-          assert.strictEqual( layer3.setCount, 1, 'layer3.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+        let result = await asc.get('key');
 
-        done();
-
-      },
-      ( done ) => {
-        // small delay
-        setTimeout( done, 1 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
+        // counts should be one, because internal memory layer was disabled, then all middle layers got back propagated
+        assert.strictEqual(layer1.getCount, 1, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 1, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 1, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 1, 'layer2.setCount is wrong');
+        assert.strictEqual(count, 1, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
 
-        try {
+        await util.wait(1);
 
-          // layer 1 had data, only get on that layer should increment
-          // layer 2 would have returned errors for all get/set calls, but the calls were not made
-          assert.strictEqual( layer1.getCount, 2, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( layer3.getCount, 1, 'layer3.getCount is wrong' );
-          assert.strictEqual( layer3.setCount, 1, 'layer3.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+        result = await asc.get('key');
 
-        done();
+        // counts should be one, except first layer 2, because internal memory layer was disabled. All layers after should be ignored
+        assert.strictEqual(layer1.getCount, 2, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 1, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 1, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 1, 'layer2.setCount is wrong');
+        assert.strictEqual(count, 1, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
 
-      },
-      ( done ) => {
-        asc.get( 'key2', done );
-      },
-      ( result, done ) => {
+        result = await asc.get('key2');
 
-        try {
+        // counts should all increment by one, because internal memory layer was disabled, then all middle layers got back propagated
+        assert.strictEqual(layer1.getCount, 3, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 2, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 2, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 2, 'layer2.setCount is wrong');
+        assert.strictEqual(count, 2, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
 
-          // counts should increment by one, on all layers because key2 is new
-          // internal memory layer was disabled, then all middle layers got back propagated
-          // layer 2 returned errors for all get/set calls, but the calls should still have been made
-          assert.strictEqual( layer1.getCount, 3, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 2, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 2, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 2, 'layer2.setCount is wrong' );
-          assert.strictEqual( layer3.getCount, 2, 'layer3.getCount is wrong' );
-          assert.strictEqual( layer3.setCount, 2, 'layer3.setCount is wrong' );
-          assert.strictEqual( count, 2, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+    });
 
-        done();
+    it('should use multiple cache layers with disabled memory, shortcut get', async function () {
 
-      }
-    ], done );
+        let count = 0;
+        let timestamp = null;
 
-  } );
+        // these will cache miss, just like internal memory storage in ASC
+        const layer1 = util.testLayer();
+        const layer2 = util.testLayer();
 
-  it( 'should ignore errors on middle cache layers with enabled memory: version 3', function ( done ) {
+        const params = {
+            memory: {
+                disabled: true
+            },
+            layers: [
+                layer1,
+                layer2
+            ],
+            get: async () => {
 
-    let count = 0;
-    let timestamp = null;
+                count++;
+                timestamp = new Date().toISOString();
 
-    // these will cache miss, just like internal memory storage in ASC
-    const layer1 = util.testLayer();
-    const layer2 = util.testLayer( new Error( 'test error' ) );
-    const layer3 = util.testLayer();
+                return timestamp;
 
-    const params = {
-      memory: {
-        disabled: false
-      },
-      layers: [
-        layer1,
-        layer2,
-        layer3,
-        {
-          get: ( key, done ) => {
+            }
+        };
 
-            count++;
-            timestamp = new Date().toISOString();
+        const asc = new ASC(params);
 
-            done( null, timestamp ); // just return the date for any call
+        let result = await asc.get('key');
 
-          }
-        }
-      ]
-    };
+        // counts should be one, because internal memory layer was disabled, then all middle layers got back propagated
+        assert.strictEqual(layer1.getCount, 1, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 1, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 1, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 1, 'layer2.setCount is wrong');
+        assert.strictEqual(count, 1, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
 
-    const asc = new ASC( params );
+        await util.wait(1);
 
-    async.waterfall( [
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
+        result = await asc.get('key');
 
-        try {
+        // counts should be one, except first layer 2, because internal memory layer was disabled. All layers after should be ignored
+        assert.strictEqual(layer1.getCount, 2, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 1, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 1, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 1, 'layer2.setCount is wrong');
+        assert.strictEqual(count, 1, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
 
-          // counts should be one, because internal memory layer was enabled and had a miss, then all middle layers got back propagated
-          // layer 2 returned errors for all get/set calls, but the calls should still have been made
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( layer3.getCount, 1, 'layer3.getCount is wrong' );
-          assert.strictEqual( layer3.setCount, 1, 'layer3.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+        result = await asc.get('key2');
 
-        done();
-
-      },
-      ( done ) => {
-        // small delay
-        setTimeout( done, 1 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
+        // counts should all increment by one, because internal memory layer was disabled, then all middle layers got back propagated
+        assert.strictEqual(layer1.getCount, 3, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 2, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 2, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 2, 'layer2.setCount is wrong');
+        assert.strictEqual(count, 2, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
 
-        try {
+    });
 
-          // memory should have been a hit, so no increments
-          // layer 2 would have returned errors for all get/set calls, but the calls were not made
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( layer3.getCount, 1, 'layer3.getCount is wrong' );
-          assert.strictEqual( layer3.setCount, 1, 'layer3.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+    it('should ignore errors on middle cache layers with disabled memory: version 1', async function () {
 
-        done();
+        let count = 0;
+        let timestamp = null;
 
-      },
-      ( done ) => {
-        asc.get( 'key2', done );
-      },
-      ( result, done ) => {
+        // these will cache miss, just like internal memory storage in ASC
+        const layer1 = util.testLayer(new Error('test error'));
+        const layer2 = util.testLayer();
 
-        try {
+        const params = {
+            memory: {
+                disabled: true
+            },
+            layers: [
+                layer1,
+                layer2,
+                {
+                    get: async () => {
 
-          // counts should increment by one, on all layers because key2 is new
-          // internal memory layer was enabled but had a miss, then all middle layers got back propagated
-          // layer 2 returned errors for all get/set calls, but the calls should still have been made
-          assert.strictEqual( layer1.getCount, 2, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 2, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 2, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 2, 'layer2.setCount is wrong' );
-          assert.strictEqual( layer3.getCount, 2, 'layer3.getCount is wrong' );
-          assert.strictEqual( layer3.setCount, 2, 'layer3.setCount is wrong' );
-          assert.strictEqual( count, 2, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+                        count++;
+                        timestamp = new Date().toISOString();
 
-        done();
+                        return timestamp;
 
-      }
-    ], done );
+                    }
+                }
+            ]
+        };
 
-  } );
+        const asc = new ASC(params);
 
-  it( 'should ignore errors on middle cache layers with enabled memory: version 3, shortcut get', function ( done ) {
+        let result = await asc.get('key');
 
-    let count = 0;
-    let timestamp = null;
+        // counts should be one, because internal memory layer was disabled, then all middle layers got back propagated
+        // layer 1 returned errors for all get/set calls, but the calls should still have been made
+        assert.strictEqual(layer1.getCount, 1, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 1, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 1, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 1, 'layer2.setCount is wrong');
+        assert.strictEqual(count, 1, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
 
-    // these will cache miss, just like internal memory storage in ASC
-    const layer1 = util.testLayer();
-    const layer2 = util.testLayer( new Error( 'test error' ) );
-    const layer3 = util.testLayer();
+        await util.wait(1);
 
-    const params = {
-      memory: {
-        disabled: false
-      },
-      layers: [
-        layer1,
-        layer2,
-        layer3
-      ],
-      get: ( key, done ) => {
+        result = await asc.get('key');
 
-        count++;
-        timestamp = new Date().toISOString();
+        // counts should increment by one, except last because layer 2 had the data.
+        // internal memory layer was disabled, then all middle layers above layer 2 got back propagated
+        // layer 1 returned errors for all get/set calls, but the calls should still have been made
+        assert.strictEqual(layer1.getCount, 2, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 2, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 2, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 1, 'layer2.setCount is wrong');
+        assert.strictEqual(count, 1, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
 
-        done( null, timestamp ); // just return the date for any call
+        result = await asc.get('key2');
 
-      }
-    };
+        // counts should increment by one, on all layers because key2 is new
+        // internal memory layer was disabled, then all middle layers got back propagated
+        // layer 1 returned errors for all get/set calls, but the calls should still have been made
+        assert.strictEqual(layer1.getCount, 3, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 3, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 3, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 2, 'layer2.setCount is wrong');
+        assert.strictEqual(count, 2, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
 
-    const asc = new ASC( params );
+    });
 
-    async.waterfall( [
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
+    it('should ignore errors on middle cache layers with disabled memory: version 2', async function () {
 
-        try {
+        let count = 0;
+        let timestamp = null;
 
-          // counts should be one, because internal memory layer was enabled and had a miss, then all middle layers got back propagated
-          // layer 2 returned errors for all get/set calls, but the calls should still have been made
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( layer3.getCount, 1, 'layer3.getCount is wrong' );
-          assert.strictEqual( layer3.setCount, 1, 'layer3.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+        // these will cache miss, just like internal memory storage in ASC
+        const layer1 = util.testLayer();
+        const layer2 = util.testLayer(new Error('test error'));
+        const layer3 = util.testLayer();
 
-        done();
-
-      },
-      ( done ) => {
-        // small delay
-        setTimeout( done, 1 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
+        const params = {
+            memory: {
+                disabled: true
+            },
+            layers: [
+                layer1,
+                layer2,
+                layer3,
+                {
+                    get: async () => {
 
-        try {
+                        count++;
+                        timestamp = new Date().toISOString();
 
-          // memory should have been a hit, so no increments
-          // layer 2 would have returned errors for all get/set calls, but the calls were not made
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( layer3.getCount, 1, 'layer3.getCount is wrong' );
-          assert.strictEqual( layer3.setCount, 1, 'layer3.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+                        return timestamp;
 
-        done();
+                    }
+                }
+            ]
+        };
 
-      },
-      ( done ) => {
-        asc.get( 'key2', done );
-      },
-      ( result, done ) => {
+        const asc = new ASC(params);
 
-        try {
+        let result = await asc.get('key');
 
-          // counts should increment by one, on all layers because key2 is new
-          // internal memory layer was enabled but had a miss, then all middle layers got back propagated
-          // layer 2 returned errors for all get/set calls, but the calls should still have been made
-          assert.strictEqual( layer1.getCount, 2, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 2, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 2, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 2, 'layer2.setCount is wrong' );
-          assert.strictEqual( layer3.getCount, 2, 'layer3.getCount is wrong' );
-          assert.strictEqual( layer3.setCount, 2, 'layer3.setCount is wrong' );
-          assert.strictEqual( count, 2, 'hit count is wrong' );
-          assert.strictEqual( result, timestamp, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+        // counts should be one, because internal memory layer was disabled, then all middle layers got back propagated
+        // layer 2 returned errors for all get/set calls, but the calls should still have been made
+        assert.strictEqual(layer1.getCount, 1, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 1, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 1, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 1, 'layer2.setCount is wrong');
+        assert.strictEqual(layer3.getCount, 1, 'layer3.getCount is wrong');
+        assert.strictEqual(layer3.setCount, 1, 'layer3.setCount is wrong');
+        assert.strictEqual(count, 1, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
 
-        done();
+        await util.wait(1);
 
-      }
-    ], done );
+        result = await asc.get('key');
 
-  } );
+        // layer 1 had data, only get on that layer should increment
+        // layer 2 would have returned errors for all get/set calls, but the calls were not made
+        assert.strictEqual(layer1.getCount, 2, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 1, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 1, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 1, 'layer2.setCount is wrong');
+        assert.strictEqual(layer3.getCount, 1, 'layer3.getCount is wrong');
+        assert.strictEqual(layer3.setCount, 1, 'layer3.setCount is wrong');
+        assert.strictEqual(count, 1, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
 
-  it( 'should return a hit from top layer after set', function ( done ) {
+        result = await asc.get('key2');
 
-    let count = 0;
-    let setData = {some: 'data'};
-    let dynamicData = null;
+        // counts should increment by one, on all layers because key2 is new
+        // internal memory layer was disabled, then all middle layers got back propagated
+        // layer 2 returned errors for all get/set calls, but the calls should still have been made
+        assert.strictEqual(layer1.getCount, 3, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 2, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 2, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 2, 'layer2.setCount is wrong');
+        assert.strictEqual(layer3.getCount, 2, 'layer3.getCount is wrong');
+        assert.strictEqual(layer3.setCount, 2, 'layer3.setCount is wrong');
+        assert.strictEqual(count, 2, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
+
+    });
+
+    it('should ignore errors on middle cache layers with enabled memory: version 3', async function () {
+
+        let count = 0;
+        let timestamp = null;
 
-    // these will cache miss, just like internal memory storage in ASC
-    const layer1 = util.testLayer();
-    const layer2 = util.testLayer( new Error( 'test error' ) );
-    const layer3 = util.testLayer();
+        // these will cache miss, just like internal memory storage in ASC
+        const layer1 = util.testLayer();
+        const layer2 = util.testLayer(new Error('test error'));
+        const layer3 = util.testLayer();
+
+        const params = {
+            memory: {
+                disabled: false
+            },
+            layers: [
+                layer1,
+                layer2,
+                layer3,
+                {
+                    get: async () => {
 
-    const params = {
-      memory: {
-        disabled: false
-      },
-      layers: [
-        layer1,
-        layer2,
-        layer3,
-        {
-          get: ( key, done ) => {
+                        count++;
+                        timestamp = new Date().toISOString();
 
-            count++;
-            dynamicData = new Date().toISOString();
+                        return timestamp
+
+                    }
+                }
+            ]
+        };
 
-            done( null, dynamicData ); // just return the date for any call
+        const asc = new ASC(params);
 
-          }
-        }
-      ]
-    };
-
-    const asc = new ASC( params );
-
-    async.waterfall( [
-      ( done ) => {
-        asc.set( 'key', setData, done );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
+        let result = await asc.get('key');
 
-        try {
+        // counts should be one, because internal memory layer was enabled and had a miss, then all middle layers got back propagated
+        // layer 2 returned errors for all get/set calls, but the calls should still have been made
+        assert.strictEqual(layer1.getCount, 1, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 1, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 1, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 1, 'layer2.setCount is wrong');
+        assert.strictEqual(layer3.getCount, 1, 'layer3.getCount is wrong');
+        assert.strictEqual(layer3.setCount, 1, 'layer3.setCount is wrong');
+        assert.strictEqual(count, 1, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
+
+        await util.wait(1);
+
+        await util.wait(1);
+
+        result = await asc.get('key');
+
+        // memory should have been a hit, so no increments
+        // layer 2 would have returned errors for all get/set calls, but the calls were not made
+        assert.strictEqual(layer1.getCount, 1, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 1, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 1, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 1, 'layer2.setCount is wrong');
+        assert.strictEqual(layer3.getCount, 1, 'layer3.getCount is wrong');
+        assert.strictEqual(layer3.setCount, 1, 'layer3.setCount is wrong');
+        assert.strictEqual(count, 1, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
+
+        result = await asc.get('key2');
+
+        // counts should increment by one, on all layers because key2 is new
+        // internal memory layer was enabled but had a miss, then all middle layers got back propagated
+        // layer 2 returned errors for all get/set calls, but the calls should still have been made
+        assert.strictEqual(layer1.getCount, 2, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 2, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 2, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 2, 'layer2.setCount is wrong');
+        assert.strictEqual(layer3.getCount, 2, 'layer3.getCount is wrong');
+        assert.strictEqual(layer3.setCount, 2, 'layer3.setCount is wrong');
+        assert.strictEqual(count, 2, 'hit count is wrong');
+        assert.strictEqual(result, timestamp, 'result should match');
+
+    });
+
+    it('should return a hit from top layer after set', async function () {
+
+        let count = 0;
+        let setData = {some: 'data'};
+        let dynamicData = null;
+
+        // these will cache miss, just like internal memory storage in ASC
+        const layer1 = util.testLayer();
+        const layer2 = util.testLayer(new Error('test error'));
+        const layer3 = util.testLayer();
+
+        const params = {
+            memory: {
+                disabled: false
+            },
+            layers: [
+                layer1,
+                layer2,
+                layer3,
+                {
+                    get: async () => {
 
-          // set counts should be one, all else 0, because we set the value on memory
-          // layer 2 returned errors for all get/set calls, but the calls should still have been made
-          assert.strictEqual( layer1.getCount, 0, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 0, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( layer3.getCount, 0, 'layer3.getCount is wrong' );
-          assert.strictEqual( layer3.setCount, 1, 'layer3.setCount is wrong' );
-          assert.strictEqual( count, 0, 'hit count is wrong' );
-          assert.strictEqual( result, setData, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+                        count++;
+                        dynamicData = new Date().toISOString();
 
-        done();
-
-      },
-      ( done ) => {
-        // small delay
-        setTimeout( done, 1 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
+                        return dynamicData;
 
-        try {
+                    }
+                }
+            ]
+        };
 
-          // memory should have been a hit, so no increments
-          // layer 2 would have returned errors for all get/set calls, but the calls were not made
-          assert.strictEqual( layer1.getCount, 0, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 0, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( layer3.getCount, 0, 'layer3.getCount is wrong' );
-          assert.strictEqual( layer3.setCount, 1, 'layer3.setCount is wrong' );
-          assert.strictEqual( count, 0, 'hit count is wrong' );
-          assert.strictEqual( result, setData, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+        const asc = new ASC(params);
 
-        done();
+        await asc.set('key', setData);
 
-      },
-      ( done ) => {
-        asc.get( 'key2', done );
-      },
-      ( result, done ) => {
+        let result = await asc.get('key');
 
-        try {
+        // set counts should be one, all else 0, because we set the value on memory
+        // layer 2 returned errors for all get/set calls, but the calls should still have been made
+        assert.strictEqual(layer1.getCount, 0, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 1, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 0, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 1, 'layer2.setCount is wrong');
+        assert.strictEqual(layer3.getCount, 0, 'layer3.getCount is wrong');
+        assert.strictEqual(layer3.setCount, 1, 'layer3.setCount is wrong');
+        assert.strictEqual(count, 0, 'hit count is wrong');
+        assert.strictEqual(result, setData, 'result should match');
 
-          // counts should increment by one, on all layers because key2 is new
-          // internal memory layer was enabled but had a miss, then all middle layers got back propagated
-          // layer 2 returned errors for all get/set calls, but the calls should still have been made
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 2, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 2, 'layer2.setCount is wrong' );
-          assert.strictEqual( layer3.getCount, 1, 'layer3.getCount is wrong' );
-          assert.strictEqual( layer3.setCount, 2, 'layer3.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, dynamicData, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+        await util.wait(1);
 
-        done();
+        result = await asc.get('key');
 
-      }
-    ], done );
+        // memory should have been a hit, so no increments
+        // layer 2 would have returned errors for all get/set calls, but the calls were not made
+        assert.strictEqual(layer1.getCount, 0, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 1, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 0, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 1, 'layer2.setCount is wrong');
+        assert.strictEqual(layer3.getCount, 0, 'layer3.getCount is wrong');
+        assert.strictEqual(layer3.setCount, 1, 'layer3.setCount is wrong');
+        assert.strictEqual(count, 0, 'hit count is wrong');
+        assert.strictEqual(result, setData, 'result should match');
 
-  } );
+        result = await asc.get('key2');
 
-  it( 'should return a hit from top layer after set, shortcut get', function ( done ) {
+        // counts should increment by one, on all layers because key2 is new
+        // internal memory layer was enabled but had a miss, then all middle layers got back propagated
+        // layer 2 returned errors for all get/set calls, but the calls should still have been made
+        assert.strictEqual(layer1.getCount, 1, 'layer1.getCount is wrong');
+        assert.strictEqual(layer1.setCount, 2, 'layer1.setCount is wrong');
+        assert.strictEqual(layer2.getCount, 1, 'layer2.getCount is wrong');
+        assert.strictEqual(layer2.setCount, 2, 'layer2.setCount is wrong');
+        assert.strictEqual(layer3.getCount, 1, 'layer3.getCount is wrong');
+        assert.strictEqual(layer3.setCount, 2, 'layer3.setCount is wrong');
+        assert.strictEqual(count, 1, 'hit count is wrong');
+        assert.strictEqual(result, dynamicData, 'result should match');
 
-    let count = 0;
-    let setData = 'some value';
-    let dynamicData = null;
+    });
 
-    // these will cache miss, just like internal memory storage in ASC
-    const layer1 = util.testLayer();
-    const layer2 = util.testLayer( new Error( 'test error' ) );
-    const layer3 = util.testLayer();
+    it('should expire items in memory correctly', async function () {
 
-    const params = {
-      memory: {
-        disabled: false
-      },
-      layers: [
-        layer1,
-        layer2,
-        layer3
-      ],
-      get: ( key, done ) => {
+        let count = 0;
+        let timestamps = [];
+        const memoryTTL = 2000;
 
-        count++;
-        dynamicData = new Date().toISOString();
+        this.timeout(memoryTTL * 10);
 
-        done( null, dynamicData ); // just return the date for any call
+        const params = {
+            memory: {
+                ttl: memoryTTL
+            },
+            layers: [
+                {
+                    get: async () => {
 
-      }
-    };
+                        count++;
+                        timestamps.push(new Date().toISOString());
 
-    const asc = new ASC( params );
+                        return timestamps[timestamps.length - 1];
 
-    async.waterfall( [
-      ( done ) => {
-        asc.set( 'key', setData, done );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
+                    }
+                }
+            ]
+        };
 
-        try {
+        const asc = new ASC(params);
 
-          // set counts should be one, all else 0, because we set the value on memory
-          // layer 2 returned errors for all get/set calls, but the calls should still have been made
-          assert.strictEqual( layer1.getCount, 0, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 0, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( layer3.getCount, 0, 'layer3.getCount is wrong' );
-          assert.strictEqual( layer3.setCount, 1, 'layer3.setCount is wrong' );
-          assert.strictEqual( count, 0, 'hit count is wrong' );
-          assert.strictEqual( result, setData, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+        let result = await asc.get('key');
 
-        done();
-
-      },
-      ( done ) => {
-        // small delay
-        setTimeout( done, 1 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
+        // count should be one, because internal memory layer was a miss
+        assert.strictEqual(count, 1, 'hit count is wrong');
+        assert.strictEqual(result, timestamps[0], 'result should match');
 
-        try {
+        result = await asc.get('key');
 
-          // memory should have been a hit, so no increments
-          // layer 2 would have returned errors for all get/set calls, but the calls were not made
-          assert.strictEqual( layer1.getCount, 0, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 1, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 0, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 1, 'layer2.setCount is wrong' );
-          assert.strictEqual( layer3.getCount, 0, 'layer3.getCount is wrong' );
-          assert.strictEqual( layer3.setCount, 1, 'layer3.setCount is wrong' );
-          assert.strictEqual( count, 0, 'hit count is wrong' );
-          assert.strictEqual( result, setData, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+        // count should still be one, because internal memory layer was a hit
+        assert.strictEqual(count, 1, 'hit count is wrong');
+        assert.strictEqual(result, timestamps[count - 1], 'result should match');
 
-        done();
+        await util.wait(memoryTTL + 1000);
 
-      },
-      ( done ) => {
-        asc.get( 'key2', done );
-      },
-      ( result, done ) => {
+        result = await asc.get('key');
 
-        try {
+        // count should increment, because internal memory should have expired entry
+        assert.strictEqual(count, 2, 'hit count is wrong');
+        assert.strictEqual(result, timestamps[count - 1], 'result should match');
 
-          // counts should increment by one, on all layers because key2 is new
-          // internal memory layer was enabled but had a miss, then all middle layers got back propagated
-          // layer 2 returned errors for all get/set calls, but the calls should still have been made
-          assert.strictEqual( layer1.getCount, 1, 'layer1.getCount is wrong' );
-          assert.strictEqual( layer1.setCount, 2, 'layer1.setCount is wrong' );
-          assert.strictEqual( layer2.getCount, 1, 'layer2.getCount is wrong' );
-          assert.strictEqual( layer2.setCount, 2, 'layer2.setCount is wrong' );
-          assert.strictEqual( layer3.getCount, 1, 'layer3.getCount is wrong' );
-          assert.strictEqual( layer3.setCount, 2, 'layer3.setCount is wrong' );
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, dynamicData, 'result should match' );
-
-        } catch ( e ) {
-          return done( e );
-        }
+        await util.wait(memoryTTL - 100);
 
-        done();
+        await asc.clear('key');
 
-      }
-    ], done );
+        result = await asc.get('key');
 
-  } );
+        // count should increment, because internal memory should have expired entry
+        assert.strictEqual(count, 3, 'hit count is wrong');
+        assert.strictEqual(result, timestamps[count - 1], 'result should match');
 
-  it( 'should expire items in memory correctly', function ( done ) {
+        await util.wait(memoryTTL - 100);
 
-    let count = 0;
-    let timestamps = [];
-    const memoryTTL = 2000;
+        result = await asc.get('key');
 
-    this.timeout( memoryTTL * 10 );
+        // count should increment, because internal memory should have expired entry
+        assert.strictEqual(count, 3, 'hit count is wrong');
+        assert.strictEqual(result, timestamps[count - 1], 'result should match');
 
-    const params = {
-      memory: {
-        ttl: memoryTTL
-      },
-      layers: [
-        {
-          get: ( key, done ) => {
+    });
 
-            count++;
-            timestamps.push( new Date().toISOString() );
+    it('should return last error if all layers fail to return data, with memory enabled', async function () {
 
-            done( null, timestamps[timestamps.length - 1] ); // just return the date for any call
+        // these will cache miss, just like internal memory storage in ASC
+        const layer1 = util.testLayer(new Error('test error 1'));
+        const layer2 = util.testLayer(new Error('test error 2'));
+        const layer3 = util.testLayer(new Error('test error 3'));
 
-          }
-        }
-      ]
-    };
-
-    const asc = new ASC( params );
-
-    async.waterfall( [
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-        try {
+        const params = {
+            memory: {
+                disabled: false
+            },
+            layers: [
+                layer1,
+                layer2,
+                layer3
+            ],
+            get: async () => {
 
-          // count should be one, because internal memory layer was a miss
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamps[0], 'result should match' );
+                throw new Error('last layer');
 
-        } catch ( e ) {
-          return done( e );
-        }
+            }
+        };
 
-        done();
+        const asc = new ASC(params);
 
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
         try {
 
-          // count should still be one, because internal memory layer was a hit
-          assert.strictEqual( count, 1, 'hit count is wrong' );
-          assert.strictEqual( result, timestamps[count - 1], 'result should match' );
+            await asc.get('key');
+            throw new Error('should have thrown an error before here');
 
-        } catch ( e ) {
-          return done( e );
+        } catch (e) {
+            assert(e instanceof Error, 'err should be an instance of Error');
+            assert.strictEqual(e.message, 'last layer', 'error message should match');
         }
-
-        done();
-
-      },
-      ( done ) => {
-        // let TTL expire
-        setTimeout( done, memoryTTL + 1000 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-        try {
 
-          // count should increment, because internal memory should have expired entry
-          assert.strictEqual( count, 2, 'hit count is wrong' );
-          assert.strictEqual( result, timestamps[count - 1], 'result should match' );
+    });
 
-        } catch ( e ) {
-          return done( e );
-        }
+    it('should return last error if all layers fail to return data, with memory disabled', async function () {
 
-        done();
-
-      },
-      ( done ) => {
-        // DON'T let TTL expire
-        setTimeout( done, memoryTTL - 100 );
-      },
-      ( done ) => {
-        asc.clear( 'key', done );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
-        try {
+        // these will cache miss, just like internal memory storage in ASC
+        const layer1 = util.testLayer(new Error('test error 1'));
+        const layer2 = util.testLayer(new Error('test error 2'));
+        const layer3 = util.testLayer(new Error('test error 3'));
 
-          // count should increment, because internal memory should have expired entry
-          assert.strictEqual( count, 3, 'hit count is wrong' );
-          assert.strictEqual( result, timestamps[count - 1], 'result should match' );
+        const params = {
+            memory: {
+                disabled: true
+            },
+            layers: [
+                layer1,
+                layer2,
+                layer3
+            ],
+            get: async () => {
+                throw new Error('last layer');
+            }
+        };
 
-        } catch ( e ) {
-          return done( e );
-        }
+        const asc = new ASC(params);
 
-        done();
-
-      },
-      ( done ) => {
-        // DON'T let TTL expire
-        setTimeout( done, memoryTTL - 100 );
-      },
-      ( done ) => {
-        asc.get( 'key', done );
-      },
-      ( result, done ) => {
         try {
 
-          // count should increment, because internal memory should have expired entry
-          assert.strictEqual( count, 3, 'hit count is wrong' );
-          assert.strictEqual( result, timestamps[count - 1], 'result should match' );
+            await asc.get('key');
+            throw new Error('should have thrown an error before here');
 
-        } catch ( e ) {
-          return done( e );
+        } catch (e) {
+            assert(e instanceof Error, 'err should be an instance of Error');
+            assert.strictEqual(e.message, 'last layer', 'error message should match');
         }
-
-        done();
-
-      }
-    ], done );
-
-  } );
-
-  it( 'should return last error if all layers fail to return data, with memory enabled', function ( done ) {
-
-    // these will cache miss, just like internal memory storage in ASC
-    const layer1 = util.testLayer( new Error( 'test error 1' ) );
-    const layer2 = util.testLayer( new Error( 'test error 2' ) );
-    const layer3 = util.testLayer( new Error( 'test error 3' ) );
-
-    const params = {
-      memory: {
-        disabled: false
-      },
-      layers: [
-        layer1,
-        layer2,
-        layer3
-      ],
-      get: ( key, done ) => {
-
-        done( new Error( 'last layer' ) );
-
-      }
-    };
-
-    const asc = new ASC( params );
-
-    asc.get( 'key', ( err, data ) => {
-
-      try {
-
-        assert( err instanceof Error, 'err should be an instance of Error' );
-        assert.strictEqual( err.message, 'last layer', 'error message should match' );
-
-
-        // eslint-disable-next-line no-undefined
-        assert.strictEqual( data, undefined, 'data should be undefined' );
-
-      } catch ( e ) {
-        return done( e );
-      }
-
-      done();
-
-    } );
-
-  } );
-
-  it( 'should return last error if all layers fail to return data, with memory disabled', function ( done ) {
-
-    // these will cache miss, just like internal memory storage in ASC
-    const layer1 = util.testLayer( new Error( 'test error 1' ) );
-    const layer2 = util.testLayer( new Error( 'test error 2' ) );
-    const layer3 = util.testLayer( new Error( 'test error 3' ) );
-
-    const params = {
-      memory: {
-        disabled: true
-      },
-      layers: [
-        layer1,
-        layer2,
-        layer3
-      ],
-      get: ( key, done ) => {
-
-        done( new Error( 'last layer' ) );
-
-      }
-    };
-
-    const asc = new ASC( params );
 
-    asc.get( 'key', ( err, data ) => {
+    });
 
-      try {
+    it('should ignore undefined return values', async function () {
 
-        assert( err instanceof Error, 'err should be an instance of Error' );
-        assert.strictEqual( err.message, 'last layer', 'error message should match' );
+        // these will cache miss, just like internal memory storage in ASC
+        const layer1 = util.testLayer();
+        const layer2 = util.testLayer(new Error('test error'));
+        const layer3 = util.testLayer();
 
-        // eslint-disable-next-line no-undefined
-        assert.strictEqual( data, undefined, 'data should be undefined' );
+        const params = {
+            memory: {
+                disabled: false
+            },
+            layers: [
+                layer1,
+                layer2,
+                layer3
+            ],
+            get: async () => 'last layer'
+        };
 
-      } catch ( e ) {
-        return done( e );
-      }
+        const asc = new ASC(params);
 
-      done();
+        const result = await asc.get('key');
 
-    } );
+        assert.strictEqual(result, 'last layer', 'result should match last layer response');
 
-  } );
+    });
 
-} );
+});

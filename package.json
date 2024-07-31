@@ -1,7 +1,7 @@
 {
   "name": "asc",
   "description": "A middleware layer between a service and a client. The service could be an in-process library, a file, an external web service, anything. Any time the results from a resource call can be cached, you can use ASC as a proxy to that resource.",
-  "version": "2.0.4",
+  "version": "2.1.0",
   "author": "Anthony Hildoer <anthony@bluerival.com>",
   "repository": {
     "type": "git",
@@ -12,13 +12,14 @@
     "test-watch": "node ./node_modules/mocha/bin/mocha.js -b -u bdd -w --exit test/*.test.js",
     "test": "node ./node_modules/mocha/bin/mocha.js -b -u bdd --exit test/*.test.js"
   },
-  "dependencies": {
-    "async": "^3.2.5"
-  },
   "devDependencies": {
+    "@eslint/js": "^9.8.0",
+    "@types/eslint": "^9.6.0",
     "@types/mocha": "^10.0.7",
     "eslint": "^9.8.0",
+    "eslint-plugin-mocha": "^10.5.0",
     "glob": "^11.0.0",
+    "globals": "^15.8.0",
     "mocha": "10.7.0"
   },
   "keywords": [
@@ -28,7 +29,7 @@
     "batch lookup"
   ],
   "engines": {
-    "node": ">=0.10.0"
+    "node": ">=16.10.0"
   },
   "files": [
     "index.js",
